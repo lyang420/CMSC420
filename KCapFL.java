@@ -1,13 +1,21 @@
 import java.util.ArrayList;
 
-/* Implementation of the k-capacitated facility locator, which, given a set of data points (referred to as "service centers") and an integer k, computes service centers such that they can serve at most k customers and are located as close to one another as possible. */
+/* Implementation of the k-capacitated facility locator, which, given a set of data points (referred to as "service
+centers") and an integer k, locates service centers such that they can serve at most k customers and are located as
+optimally as possible. */
+
 public class KCapFL<LPoint extends LabeledPoint2D> {
-	/* KCapFL contains an integer representing the number of points that can be within a certain radius, an extended kd-tree to store points, and a leftist heap to store key-value pairs representing the distances of pairs to a point. */
+
+	/* KCapFL contains an integer representing the number of points that can be within a certain radius, an extended
+	kd-tree to store points, and a leftist heap to store key-value pairs representing the distances of pairs to a
+	point. */
+
 	private int capacity;
 	private XkdTree<LPoint> kdTree;
 	private LeftistHeap<Double, ArrayList<LPoint>> heap;
 
-	/* Constructor for KCapFL sets the capacity to the provided value, creates an extended kd-tree with the given bucket size and bounding box, and a new empty leftist heap. */
+	/* Constructor for KCapFL sets the capacity to the provided value, creates an extended kd-tree with the given
+	bucket size and bounding box, and a new empty leftist heap. */
 	public KCapFL(int capacity, int bucketSize, Rectangle2D bbox) {
 		this.capacity = capacity;
 		this.kdTree = new XkdTree<LPoint>(bucketSize, bbox);
@@ -20,12 +28,12 @@ public class KCapFL<LPoint extends LabeledPoint2D> {
 		this.heap.clear();
 	}
 
-	/* Stores a given list of points into KCapFL by inserting them into the extended kd-tree and calculating the k nearest neighbors for each point to store the kth nearest neighbor in the leftist heap. */
+	/* Stores a given list of points in KCapFL by inserting them into the extended kd-tree and calculating the k
+	nearest neighbors for each point to store the kth nearest neighbor in the leftist heap. */
 	public void build(ArrayList<LPoint> pts) throws Exception {
 		if (pts.size() <= 0 || pts.size() % this.capacity != 0) {
 			throw new Exception("Invalid point set size");
 		}
-		
 		this.kdTree.bulkInsert(pts);
 		for (LPoint point : pts) {
 			ArrayList<LPoint> kNearestNeighbor = this.kdTree.kNearestNeighbor(point.getPoint2D(), this.capacity);
@@ -35,12 +43,9 @@ public class KCapFL<LPoint extends LabeledPoint2D> {
 
 	/* Returns a list representing a "cluster" of labeled points. */
 	public ArrayList<LPoint> extractCluster() {
-		/* If the extended kd-tree is empty, return. */
 		if (this.kdTree.size() == 0) {
 			return null;
 		}
-		
-		/* Operation contained in a try-catch block to handle potential exception thrown by leftist heap extract operation.*/
 		try {
 			ArrayList<LPoint> labeledPoints = new ArrayList<LPoint>(this.heap.extractMin());
 			boolean success = true;
@@ -50,14 +55,19 @@ public class KCapFL<LPoint extends LabeledPoint2D> {
 					break;
 				}
 			}
+
 			/* If the extended kd-tree contains the minimum key in the leftist heap, we simply return it. */
+
 			if (success) {
 				for (LPoint point : labeledPoints) {
 					this.kdTree.delete(point.getPoint2D());
 				}
 				return labeledPoints;
 				
-			/* If the extended kd-tree does not contain every element in the list from above, but does contain the minimum element, create a new list of labeled points, radius, and corresponding leftist heap, and continue extracting clusters. */
+			/* If the extended kd-tree does not contain every element in the list from above, but does contain the
+			minimum element, create a new list of labeled points, radius, and corresponding leftist heap, and continue
+			extracting clusters. */
+
 			} else {
 				LPoint c = labeledPoints.get(0);
 				if (this.kdTree.find(c.getPoint2D()) != null) {
@@ -67,7 +77,10 @@ public class KCapFL<LPoint extends LabeledPoint2D> {
 				}
 			}
 		} catch (Exception e) {
-			/* Theoretically, if we're doing everything right, we should never reach the catch clause, since we should never be trying to extract elements from an empty leftist heap. */
+
+			/* Theoretically, if we're doing everything right, we should never reach the catch clause, since we should
+			never be trying to extract elements from an empty leftist heap. */
+
 			System.out.println("You're doing something wrong.");
 		}
 		return this.extractCluster();
