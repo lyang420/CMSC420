@@ -1,30 +1,24 @@
-package cmsc420_f22; // Do not delete this line
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-/* @author Lucas Yang
- * CMSC420 0201
- * Fall 2022
- * 
- */
-
 /* Implementation of extended kd-tree containing points of two dimensions. */
+
 public class XkdTree<LPoint extends LabeledPoint2D> {
 	
-	/* An extended kd-tree's nodes may be internal, which splits values
-	 * based on cutting dimension, or external, which contains points. */
+	/* An extended kd-tree's nodes may be internal, which splits values based on "cutting dimension," or external,
+	which contains points. An internal node's job is to tell you where to go in the tree, and an external node stores
+	all the actual hard points and does most of the heavy lifting. */
+
 	private abstract class Node {
-		/* Constructor for a node. */
 		private Node() {
-			
+			// Java made me create this
 		}
 		
-		/* Operations the kd-tree supports includes finding a point, inserting
-		 * one or many points at once, returning a list of its contents,
-		 * locating one or several of a points nearest neighbors, and deleting
-		 * a point from the tree. */
+		/* Operations the kd-tree supports includes finding a point, inserting one or many points at once, returning a
+		list of its contents, locating one or several of a point's nearest neighbors, and deleting a point from the
+		tree. */
+
 		abstract LPoint find(Point2D pt);
 		abstract Node bulkInsert(ArrayList<LPoint> pts, Rectangle2D bbox, int bucketSize) throws Exception;
 		abstract ArrayList<String> list(ArrayList<String> lst);
@@ -33,16 +27,14 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 		abstract void kNNHelper(Point2D q, Rectangle2D cell, MinK<Double, LPoint> minK);
 	}
 	
-	/* Implementation for an internal node of the extended kd-tree. */
+	/* An internal node contains cutting dimension, which can be 0 or 1 (split based on X or Y coordinate,
+	respectively), cutting value, and references to its left and right subtrees. */
+
 	private class InternalNode extends Node {
-		/* An internal node contains cutting dimension, which can be 0 or 1
-		 * (X or Y coordinate, respectively), cutting value, and references
-		 * to its left and right subtrees. */
 		int cutDim;
 		double cutVal;
 		Node left, right;
-		
-		/* Constructor to create a new internal node with provided arguments. */
+
 		InternalNode(int cutDim, double cutVal, Node left, Node right) {
 			super();
 			this.cutDim = cutDim;
@@ -51,15 +43,11 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			this.right = right;
 		}
 		
-		/* When finding a point, an internal node looks at the point's cutting
-		 * value, and makes a recursive call to either the left or right
-		 * subtree based on the cutting dimension. */
+		/* When finding a point, an internal node looks at the point's cutting value, and makes a recursive call to
+		either the left or right subtree based on the cutting dimension. If the point's value is less than the current
+		node's cutting value, call to the left subtree, and otherwise, to the right subtree. However, if it is equal,
+		the point may live in either the left OR right subtree, so we must handle that case as well. */
 		LPoint find(Point2D q) {
-			/* If the point's value is less than the current node's
-			 * cutting value, call to the left subtree, and otherwise, to the
-			 * right subtree. However, if it is equal, the point may live
-			 * in either the left OR right subtree, so we must handle that case
-			 * as well. */
 			if ((this.cutDim == 0 && q.getX() < this.cutVal) || (this.cutDim == 1 && q.getY() < this.cutVal)) {
 				return this.left.find(q);
 			} else if ((this.cutDim == 0 && q.getX() > this.cutVal) || (this.cutDim == 1 && q.getY() > this.cutVal)) {
@@ -73,13 +61,10 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			}
 		}
 		
-		/* When inserting many points at once, we must keep in mind that the
-		 * kd-tree has a bucket size, or maximum number of points that can
-		 * be contained in a single external node. With this in mind, we have
-		 * to call the insertion operation on the left and right subtree by
-		 * splitting the list of points to be inserted such that each subtree
-		 * receives points either less than or equal to, or greater than the
-		 * cutting value. */
+		/* When inserting many points at once, we must keep in mind that the kd-tree has a bucket size, or maximum
+		number of points that can be contained in a single external node. With this in mind, we have to call the
+		insertion operation on the left and right subtree by splitting the list of points to be inserted such that each
+		subtree receives points either less than or equal to, or greater than the cutting value. */
 		Node bulkInsert(ArrayList<LPoint> pts, Rectangle2D bbox, int bucketSize) throws Exception {
 			int splitIndex = 0;
 			if (this.cutDim == 0) {
@@ -104,8 +89,7 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return this;
 		}
 		
-		/* Return a list of the contents of the kd-tree in accordance with
-		 * instruction specifications. */
+		/* Return a list representation of the kd-tree. */
 		ArrayList<String> list(ArrayList<String> lst) {
 			if (this.cutDim == 0) {
 				lst.add("(x=" + this.cutVal + ")");
@@ -117,12 +101,13 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return lst;
 		}
 		
-		/* Return a point's "nearest neighbor" by partitioning the current
-		 * "rectangle" into two parts, and calling the function recursively
-		 * on either the left or right subtree based on whether it is possible
-		 * for it to contain the nearest neighbor. This operation is efficient
-		 * because we keep track of a "best" point, or the point closest
-		 * to our target so far. */
+		/* Return a point's "nearest neighbor" by partitioning the current "rectangle" into two parts, and calling the
+		function recursively on either the left or right subtree based on whether it is possible for it to contain the
+		nearest neighbor. This operation is efficient because we keep track of a "best" point, or the point closest to
+		our target so far.
+		
+		A rectangle object can be viewed as a two-dimensional coordinate graph containing the tree. We can use it to
+		view specific enclosed areas of the tree. */
 		LPoint nearestNeighbor(Point2D center, Rectangle2D cell, LPoint best) {
 			Rectangle2D leftCell = cell.leftPart(this.cutDim, this.cutVal);
 			Rectangle2D rightCell = cell.rightPart(this.cutDim, this.cutVal);
@@ -156,10 +141,9 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return best;
 		}
 		
-		/* When deleting a point from a kd-tree, we need to modify nodes in case
-		 * deletion results in an external node being empty. If this is the case,
-		 * then that empty node is unlinked from the tree, with its grandparent
-		 * pointing to its sibling. */
+		/* When deleting a point from a kd-tree, we need to modify nodes in case deletion results in an external node
+		being empty. If this is the case, then that empty node is unlinked from the tree, with its grandparent pointing
+		to its sibling. */
 		Node deleteHelper(Point2D pt) {
 			if (this.left.find(pt) != null) {
 				this.left = this.left.deleteHelper(pt);
@@ -176,10 +160,9 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return this;
 		}
 		
-		/* Calculating k nearest neighbors is conceptually similar to the
-		 * single neighbor operation above, except that we must keep track
-		 * of several "best" or "nearest" points in a max heap, which we
-		 * implement using the MinK data structure. */
+		/* Calculating k nearest neighbors is conceptually similar to the single nearest neighbor operation above,
+		except that we must keep track of several "best" or "nearest" points in a max heap, which we implement using
+		the MinK data structure. */
 		void kNNHelper(Point2D q, Rectangle2D cell, MinK<Double, LPoint> minK) {
 			if (cell.distanceSq(q) > minK.getKth()) {
 				return;
@@ -198,19 +181,17 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 		}
 	}
 	
-	/* Implementation for an external node of the extended kd-tree. */
+	/* An external node contains a list of points. */
+
 	private class ExternalNode extends Node {
-		/* An external node contains a list of points. */
 		ArrayList<LPoint> points;
-		
-		/* Constructor to create a new external node. */
+
 		ExternalNode() {
 			super();
 			this.points = new ArrayList<LPoint>();
 		}
 		
-		/* Returns the point if it is contained within the current node, or null
-		 * if it is not found. */
+		/* Returns the point if it is contained within the current node, or null if it is not found. */
 		LPoint find(Point2D pt) {
 			LPoint res = null;
 			for (LPoint point : points) {
@@ -222,12 +203,10 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return res;
 		}
 		
-		/* Inserts several points into the external node. If there are more
-		 * nodes than allowed as specified by the kd-tree's bucket size, split
-		 * the list of points into two halves based on the width of their
-		 * distribution, set the current node to be an internal node, with its
-		 * left and right subtrees being new external nodes, and recursively
-		 * call the insertion operation on the left and right subtrees. */
+		/* Inserts several points into the external node. If there are more nodes than allowed as specified by the
+		kd-tree's bucket size, split the list of points into two halves based on the width of their distribution, set
+		the current node to be an internal node, with its left and right subtrees being new external nodes, and
+		recursively call the insertion operation on the left and right subtrees. */
 		Node bulkInsert(ArrayList<LPoint> pts, Rectangle2D bbox, int bucketSize) throws Exception {
 			this.points.addAll(pts);
 			if (this.points.size() > bucketSize) {
@@ -263,8 +242,7 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			}
 		}
 	
-		/* Return a list of the contents of the kd-tree in accordance with
-		 * instruction specifications. */
+		/* Return a list representation of the kd-tree. */
 		ArrayList<String> list(ArrayList<String> lst) {
 			Collections.sort(this.points, new ByLabel());
 			String res = "[";
@@ -280,9 +258,8 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return lst;
 		}
 		
-		/* Return a point's "nearest neighbor" by looking at all points in
-		 * the current external node and checking if any are closer than
-		 * the current "best" point. */
+		/* Return a point's "nearest neighbor" by looking at all points in the current external node and checking if
+		any are closer than the current "best" point. */
 		LPoint nearestNeighbor(Point2D center, Rectangle2D cell, LPoint best) {
 			double distanceToBest = Double.MAX_VALUE;
 			if (best != null) {
@@ -297,10 +274,8 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return best;
 		}
 		
-		/* Delete a point from an external node by removing it from the list
-		 * of points. If the current external node is emptied, return a null
-		 * reference so that its parent, the internal node, can be restructured
-		 * accordingly. */
+		/* Delete a point from an external node by removing it from the list of points. If the current external node is
+		emptied, return a null reference so that its parent, the internal node, can be restructured accordingly. */
 		Node deleteHelper(Point2D pt) {
 			for (LPoint point : this.points) {
 				if (point.getPoint2D().equals(pt)) {
@@ -314,10 +289,9 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			return this;
 		}
 		
-		/* When calculating k nearest neighbors of a point, an external node
-		 * adds all of its points to the minK data structure. MinK will handle
-		 * the operation of calculating whether any of the new points are
-		 * eligible to be considered k nearest. */
+		/* When calculating k nearest neighbors of a point, an external node adds all of its points to the MinK data
+		structure. MinK will handle the operation of calculating whether any of the new points are eligible to be
+		considered k nearest. */
 		void kNNHelper(Point2D q, Rectangle2D cell, MinK<Double, LPoint> minK) {
 			for (LPoint point : this.points) {
 				minK.add(point.getPoint2D().distanceSq(q), point);
@@ -370,16 +344,17 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 		}
 	}
 	
-	/* An extended kd-tree has a root, a size, a bucket size, and a bounding
-	 * box, which is represented by a two-dimensional Rectangle object. */
+	/* An extended kd-tree has a root, an integer size denoting the number of points it contains, an integer bucketSize
+	denoting the maximum number of points an external node can hold, and a bounding box, which is represented by a
+	two-dimensional Rectangle object. */
+
 	private Node root;
 	private int size;
 	private int bucketSize;
 	private Rectangle2D bbox;
 
-	/* Constructor for an extended kd-tree creates a new kd-tree with a single
-	 * empty external node, and sets its bucket size and bounding box to the
-	 * provided values. */
+	/* Constructor for an extended kd-tree creates a new kd-tree with a single empty external node, and sets its bucket
+	size and bounding box to the provided values. */
 	public XkdTree(int bucketSize, Rectangle2D bbox) {
 		this.root = new ExternalNode();
 		this.size = 0;
@@ -387,8 +362,7 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 		this.bbox = bbox;
 	}
 	
-	/* Clear the extended kd-tree by removing all its contents and returning it
-	 * to its default state. */
+	/* Clear the extended kd-tree by removing all its contents and returning it to its default state. */
 	public void clear() {
 		this.root = new ExternalNode();
 		this.size = 0;
@@ -399,24 +373,21 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 		return this.size;
 	}
 	
-	/* Return the provided point, if it is found in the kd-tree, or null, if it
-	 * is not. */
+	/* Return the provided point, if it is found in the kd-tree, or null, if it is not. */
 	public LPoint find(Point2D q) {
 		return root.find(q);
 	}
 	
-	/* Insert the provided point into the kd-tree, throwing an exception if a
-	 * point is outside of the bounding box. Inserting a single point is
-	 * functionally the same as calling bulkInsert on a list of just the one
-	 * point. */
+	/* Insert the provided point into the kd-tree, throwing an exception if a point is outside of the bounding box.
+	Inserting a single point is functionally the same as calling bulkInsert on a list of just the one point. */
 	public void insert(LPoint pt) throws Exception {
 		ArrayList<LPoint> lst = new ArrayList<LPoint>();
 		lst.add(pt);
 		this.bulkInsert(lst);
 	}
 	
-	/* Insert provided list of points into the extended kd-tree, throwing an
-	 * exception if a point is outside of the bounding box. */
+	/* Insert provided list of points into the extended kd-tree, throwing an exception if a point is outside of the
+	bounding box. */
 	public void bulkInsert(ArrayList<LPoint> pts) throws Exception {
 		if (pts.size() > 0) {
 			Collections.sort(pts, new ByXThenY());
@@ -428,20 +399,19 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 				throw new Exception("Attempt to insert a point outside bounding box");
 			}
 			this.root = this.root.bulkInsert(pts, this.bbox, this.bucketSize);
-			/* Remember to increment the size property of the tree after
-			 * successful insertion. */
+
+			/* Remember to increment the size property of the tree after successful insertion. */
 			this.size += pts.size();
 		}
 	}
 	
-	/* Return a list of the tree's contents in accordance with instructions. */
+	/* Return a list representation of the kd-tree. */
 	public ArrayList<String> list() {
 		ArrayList<String> res = new ArrayList<String>();
 		return this.root.list(res);
 	}
 	
-	/* Returns the point closest to the given point, or null if the tree is
-	 * empty. */
+	/* Returns the point closest to the given point, or null if the tree is empty. */
 	public LPoint nearestNeighbor(Point2D center) {
 		if (this.size == 0) {
 			return null;
@@ -449,8 +419,7 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 		return this.root.nearestNeighbor(center, bbox, null);
 	}
 
-	/* Deletes the given point from the tree, throwing an exception if is not
-	 * already in the tree. */
+	/* Deletes the given point from the tree, throwing an exception if is not already in the tree. */
 	public void delete(Point2D pt) throws Exception {
 		if (this.find(pt) == null) {
 			throw new Exception("Deletion of nonexistent point");
@@ -460,14 +429,14 @@ public class XkdTree<LPoint extends LabeledPoint2D> {
 			} else {
 				this.root = this.root.deleteHelper(pt);
 			}
-			/* Remember to decrement the size property of the tree after
-			 * successful deletion. */
+
+			/* Remember to decrement the size property of the tree after successful deletion. */
 			this.size--;
 		}
 	}
 	
-	/* Return a list of k points closest to the point center given in the
-	 * arguments with the help of the MinK data structure. */
+	/* Return a list of k points closest to the point center given in the arguments with the help of the MinK data
+	structure. */
 	public ArrayList<LPoint> kNearestNeighbor(Point2D center, int k) {
 		ArrayList<LPoint> res = new ArrayList<LPoint>();
 		if (this.size > 0) {
