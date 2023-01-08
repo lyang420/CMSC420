@@ -1,45 +1,35 @@
-package cmsc420_f22; // Do not delete this line
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-/* @author Lucas Yang
- * CMSC420 0201
- * Fall 2022
- * 
- */
+/* Implementation of MinK data structure containing key-value pairs, where keys are comparable. When applied to the
+extended kd-tree to answer the k nearest neighbors query, keys are doubles, representing squared distances to a point,
+and values are labeled points. */
 
-/* Implementation of MinK data structure containing key-value pairs, where
- * keys are comparable. When applied to the extended kd-tree to answer
- * the k nearest neighbors query, keys are doubles, representing squared
- * distances to a point, and values are labeled points. */
 public class MinK<Key extends Comparable<Key>, Value> {
 	
-	/* MinK is implemented as a max heap storing key-value pairs. For
-	 * abstraction purposes, its contents will be defined as Pair objects. */
+	/* MinK is implemented as a max heap storing key-value pairs. For abstraction purposes, its contents will be
+	defined as Pair objects. */
+
 	class Pair {
 		Key key;
 		Value value;
-		
-		/* Constructor for a Pair creates a new key-value pair from the
-		 * given parameters. */
+
 		private Pair(Key key, Value value) {
 			this.key = key;
 			this.value = value;
 		}
 	}
 	
-	/* MinK stores its contents in a list-based heap for efficient indexing,
-	 * a key representing the maximum possible key value, and the number
-	 * of elements (k from the original query). */
+	/* MinK stores its contents in a list-based heap for efficient indexing, a key representing the maximum possible
+	key value, and the number of elements (k from the original query). */
+
 	private ArrayList<Pair> heap;
 	private Key maxKey;
 	private int numElements;
 
-	/* Constructor for MinK creates a new MinK by instantiating an empty
-	 * heap with null in the first position (for 1-indexing), and setting
-	 * maxKey and numElements to the provided values. */
+	/* Constructs a new MinK by instantiating an empty heap with null in the first position (for 1-indexing), and
+	setting maxKey and numElements to the provided values. */
 	public MinK(int k, Key maxKey) {
 		this.heap = new ArrayList<Pair>();
 		this.heap.add(null);
@@ -58,8 +48,8 @@ public class MinK<Key extends Comparable<Key>, Value> {
 		this.heap.add(null);
 	}
 	
-	/* Return the kth greatest key in MinK, which should be the first element,
-	 * or the maxKey value if MinK does not yet contain numElements elements. */
+	/* Return the kth greatest key in MinK, which should be the first element, or the maxKey value if MinK does not yet
+	contain numElements elements. */
 	public Key getKth() {
 		if (this.size() == numElements) {
 			return this.heap.get(1).key;
@@ -69,18 +59,19 @@ public class MinK<Key extends Comparable<Key>, Value> {
 	
 	/* Add a given key-value pair to MinK as in a max heap. */
 	public void add(Key x, Value v) {
-		/* If MinK does not yet contain numElements elements, append the
-		 * key-value pair to the end of the list and sift it up to its
-		 * correct position. */
+
+		/* If MinK does not yet contain numElements elements, append the key-value pair to the end of the list and sift
+		it up to its correct position. */
+
 		if (this.size() < this.numElements) {
 			Pair newElement = new Pair(x, v);
 			this.heap.add(newElement);
 			int i = this.siftUp(this.size(), x);
 			this.heap.set(i, newElement);
-		/* If MinK already contains numElements elements, then replace the
-		 * root element with the new key-value pair only if the new key
-		 * is less than the root's key, and sift it down to its correct
-		 * position. */
+
+		/* If MinK already contains numElements elements, then replace the root element with the new key-value pair
+		only if the new key is less than the root's key, and sift it down to its correct position. */
+
 		} else {
 			if (x.compareTo(this.heap.get(1).key) < 0) {
 				Pair newElement = new Pair(x, v);
@@ -91,11 +82,8 @@ public class MinK<Key extends Comparable<Key>, Value> {
 		}
 	}
 	
-	/* Returns an index i representing the position of a key x in a max heap
-	 * after moving up the heap. */
+	/* Returns an index i representing the position of a key x in a max heap after moving up the heap. */
 	private int siftUp(int i, Key x) {
-		/* In a max heap, all elements are greater than or equal to its
-		 * children. */
 		while (i > 1 && x.compareTo(this.heap.get(i/2).key) > 0) {
 			this.heap.set(i, this.heap.get(i/2));
 			i /= 2;
@@ -103,8 +91,7 @@ public class MinK<Key extends Comparable<Key>, Value> {
 		return i;
 	}
 	
-	/* Returns an index i representing the position of a key x in a max heap
-	 * after moving down the heap. */
+	/* Returns an index i representing the position of a key x in a max heap after moving down the heap. */
 	private int siftDown(int i, Key x) {
 		while ((2 * i) <= this.numElements) {
 			int u = (2 * i), v = ((2 * i) + 1);
